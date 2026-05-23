@@ -1,0 +1,7 @@
+{
+  "same_view_similarity_before": 0.9888,
+  "different_image_similarity_before": 0.9853,
+  "same_view_similarity_after": 0.9087,
+  "different_image_similarity_after": 0.3363,
+  "final_loss": 3.2058
+}

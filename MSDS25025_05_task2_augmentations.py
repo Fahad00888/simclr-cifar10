@@ -14,9 +14,8 @@ from utils.seed import set_seed
 from utils.dataset_splits import get_cifar10_subset
 from utils.visualization import save_augmentation_grid
 
-# ── Config ────────────────────────────────────────────────────────────────────
 SEED       = 2026
-DATA_ROOT  = "./data"       # change to /kaggle/input/cifar-10-python on Kaggle
+DATA_ROOT  = "./data"
 SPLITS_DIR = "./splits"
 RESULTS_DIR = "./results"
 
@@ -25,8 +24,6 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 set_seed(SEED)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-
-# ── SimCLR Augmentation Pipeline (required by assignment) ────────────────────
 simclr_transform = T.Compose([
     T.RandomResizedCrop(size=32, scale=(0.2, 1.0)),
     T.RandomHorizontalFlip(p=0.5),
@@ -37,8 +34,6 @@ simclr_transform = T.Compose([
                 std=(0.2470, 0.2435, 0.2616)),
 ])
 
-
-# ── Two-View Transform (must implement yourself per assignment rules) ─────────
 class TwoViewTransform:
     """
     Wraps a single transform and applies it TWICE independently to
@@ -56,8 +51,6 @@ class TwoViewTransform:
         view2 = self.transform(x)
         return view1, view2
 
-
-# ── Visualize Augmentations ───────────────────────────────────────────────────
 def visualize_augmentations():
     """
     Show 10 examples in format: Original | View 1 | View 2
@@ -65,7 +58,6 @@ def visualize_augmentations():
     and the SimCLR transform dataset for the two views.
     """
 
-    # Load original images without any transform (for the 'Original' column)
     plain_transform = T.ToTensor()
     plain_ds = get_cifar10_subset(
         data_root=DATA_ROOT,
@@ -75,7 +67,6 @@ def visualize_augmentations():
         download=False,
     )
 
-    # Load same indices with TwoViewTransform for the augmented columns
     two_view = TwoViewTransform(simclr_transform)
     aug_ds = get_cifar10_subset(
         data_root=DATA_ROOT,
@@ -85,10 +76,10 @@ def visualize_augmentations():
         download=False,
     )
 
-    set_seed(SEED)  # reproducible selection
+    set_seed(SEED)
 
     originals, view1s, view2s = [], [], []
-    indices = list(range(10))  # first 10 samples
+    indices = list(range(10))
 
     for idx in indices:
         orig_img, _ = plain_ds[idx]
@@ -106,7 +97,6 @@ def visualize_augmentations():
     )
     print(f"Augmentation grid saved → {RESULTS_DIR}/augmentation_examples.png")
 
-    # ── Observations (Task 2 Questions) ──────────────────────────────────────
     print("\n── Task 2 Observations ──────────────────────────────────────────")
     print("Q1: Are the two augmented views identical?")
     print("    No. Each view is independently sampled from the same transform,")
@@ -131,8 +121,6 @@ def visualize_augmentations():
     print("    the same object. The model is asked to match views that genuinely look")
     print("    like different images, making the task impossible and training unstable.")
 
-
-# ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     print(f"Device : {DEVICE}")
     print(f"Seed   : {SEED}")
@@ -147,7 +135,6 @@ def main():
 
     print("\n── Generating Augmentation Examples ─────────────────────────────")
     visualize_augmentations()
-
 
 if __name__ == "__main__":
     main()

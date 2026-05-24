@@ -22,9 +22,8 @@ from utils.metrics import (
     top1_accuracy_from_logits,
 )
 
-# ── Config ──────────────────────────────────────────────────────────────────
 SEED        = 2026
-DATA_ROOT   = "./data"          # change to /kaggle/input/cifar-10-python on Kaggle
+DATA_ROOT   = "./data"
 SPLITS_DIR  = "./splits"
 RESULTS_DIR = "./results"
 GRAPHS_DIR  = "./graphs"
@@ -35,7 +34,6 @@ EPOCHS      = 30
 LR          = 3e-4
 DEVICE      = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ── Setup ────────────────────────────────────────────────────────────────────
 set_seed(SEED)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(GRAPHS_DIR,  exist_ok=True)
@@ -44,8 +42,6 @@ os.makedirs(MODELS_DIR,  exist_ok=True)
 print(f"Device: {DEVICE}")
 print(f"PyTorch: {torch.__version__}")
 
-
-# ── Transforms ───────────────────────────────────────────────────────────────
 train_transform = T.Compose([
     T.RandomCrop(32, padding=4),
     T.RandomHorizontalFlip(p=0.5),
@@ -60,8 +56,6 @@ eval_transform = T.Compose([
                 std=(0.2470, 0.2435, 0.2616)),
 ])
 
-
-# ── Data Loading ─────────────────────────────────────────────────────────────
 def get_dataloaders():
     train_ds = get_cifar10_subset(
         data_root=DATA_ROOT,
@@ -97,22 +91,16 @@ def get_dataloaders():
     print(f"Test  samples : {len(test_ds)}")
     return train_loader, val_loader, test_loader
 
-
-# ── Model ─────────────────────────────────────────────────────────────────────
 def get_model():
     """ResNet-18 modified for CIFAR-10 with a classification head."""
     model = torchvision.models.resnet18(weights=None)
 
-    # CIFAR-10 modification: replace 7x7 conv with 3x3, remove maxpool
     model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
     model.maxpool = nn.Identity()
 
-    # Replace final FC with 10-class head
     model.fc = nn.Linear(512, 10)
     return model.to(DEVICE)
 
-
-# ── Training ──────────────────────────────────────────────────────────────────
 def train_one_epoch(model, loader, criterion, optimizer):
     model.train()
     total_loss = 0.0
@@ -125,7 +113,6 @@ def train_one_epoch(model, loader, criterion, optimizer):
         optimizer.step()
         total_loss += loss.item() * images.size(0)
     return total_loss / len(loader.dataset)
-
 
 @torch.no_grad()
 def evaluate(model, loader):
@@ -146,8 +133,6 @@ def evaluate(model, loader):
     acc      = top1_accuracy_from_logits(all_logits, all_labels)
     return avg_loss, acc, all_logits, all_labels
 
-
-# ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     train_loader, val_loader, test_loader = get_dataloaders()
 
@@ -178,7 +163,6 @@ def main():
             print(f"  Epoch {epoch:3d} | Train Loss: {train_loss:.4f} | "
                   f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f}")
 
-    # ── Loss Curve ────────────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(range(1, EPOCHS + 1), train_losses, label="Train Loss", color="steelblue")
     ax.plot(range(1, EPOCHS + 1), val_losses,   label="Val Loss",   color="tomato")
@@ -192,7 +176,6 @@ def main():
     plt.close(fig)
     print(f"\nLoss curve saved → {GRAPHS_DIR}/supervised_loss.png")
 
-    # ── Final Test Evaluation ─────────────────────────────────────────────────
     model.load_state_dict(torch.load(f"{MODELS_DIR}/supervised_best.pt",
                                      map_location=DEVICE))
     test_loss, test_acc, test_logits, test_labels = evaluate(model, test_loader)
@@ -213,7 +196,6 @@ def main():
     print(f"Final Test Accuracy: {test_acc:.4f}  ({test_acc*100:.2f}%)")
     print(f"Final Test Loss    : {test_loss:.4f}")
 
-    # Save result for metrics.json
     result = {
         "task": "supervised_baseline",
         "epochs": EPOCHS,
@@ -225,7 +207,6 @@ def main():
     with open(f"{RESULTS_DIR}/task1_results.json", "w") as f:
         json.dump(result, f, indent=2)
     print(f"\nResults saved → {RESULTS_DIR}/task1_results.json")
-
 
 if __name__ == "__main__":
     main()

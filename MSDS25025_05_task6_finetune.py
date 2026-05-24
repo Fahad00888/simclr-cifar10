@@ -32,7 +32,6 @@ from utils.seed import set_seed
 from utils.dataset_splits import get_cifar10_subset
 from utils.metrics import compute_accuracy, save_confusion_matrix
 
-# ── Config ────────────────────────────────────────────────────────────────────
 SEED          = 2026
 DATA_ROOT     = "/kaggle/input/datasets/fahadkhalid08/cifar10-assignment5/data"
 SPLITS_DIR    = "./splits"
@@ -43,7 +42,7 @@ MODELS_DIR    = "./models"
 BATCH_SIZE    = 64
 EPOCHS        = 20
 LR            = 3e-4
-VIZ_SAMPLES   = 1000   # for PCA/t-SNE
+VIZ_SAMPLES   = 1000
 DEVICE        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SIMCLR_ENCODER_PATH = "/kaggle/input/simclr-encoder-msds25025/simclr_encoder.pt"
@@ -59,8 +58,6 @@ os.makedirs(MODELS_DIR,  exist_ok=True)
 print(f"Device : {DEVICE}")
 print(f"Seed   : {SEED}")
 
-
-# ── Transforms ────────────────────────────────────────────────────────────────
 train_transform = T.Compose([
     T.RandomCrop(32, padding=4),
     T.RandomHorizontalFlip(p=0.5),
@@ -75,8 +72,6 @@ eval_transform = T.Compose([
                 std=(0.2470, 0.2435, 0.2616)),
 ])
 
-
-# ── Encoder ───────────────────────────────────────────────────────────────────
 def get_encoder(pretrained_path=None):
     model = torchvision.models.resnet18(weights=None)
     model.conv1   = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
@@ -96,8 +91,6 @@ def get_encoder(pretrained_path=None):
 
     return model.to(DEVICE)
 
-
-# ── Full Classification Model (encoder + head) ────────────────────────────────
 class Classifier(nn.Module):
     """Encoder + classification head for supervised training / fine-tuning."""
     def __init__(self, encoder, num_classes=10, freeze_encoder=False):
@@ -113,8 +106,6 @@ class Classifier(nn.Module):
         h = self.encoder(x)
         return self.classifier(h)
 
-
-# ── Data Loaders ──────────────────────────────────────────────────────────────
 def get_dataloaders():
     train_ds = get_cifar10_subset(
         data_root=DATA_ROOT,
@@ -139,8 +130,6 @@ def get_dataloaders():
                               num_workers=2, pin_memory=True)
     return train_loader, val_loader, test_loader
 
-
-# ── Training ──────────────────────────────────────────────────────────────────
 def train_one_epoch(model, loader, criterion, optimizer):
     model.train()
     total_loss = 0.0
@@ -152,7 +141,6 @@ def train_one_epoch(model, loader, criterion, optimizer):
         optimizer.step()
         total_loss += loss.item() * images.size(0)
     return total_loss / len(loader.dataset)
-
 
 @torch.no_grad()
 def evaluate(model, loader):
@@ -167,8 +155,6 @@ def evaluate(model, loader):
     acc = (all_logits.argmax(1) == all_labels).float().mean().item()
     return acc, all_logits, all_labels
 
-
-# ── Fine-tuning ───────────────────────────────────────────────────────────────
 def run_finetuning(train_loader, val_loader, test_loader):
     print("\n── Fine-tuning SimCLR Encoder ───────────────────────────────────")
     encoder   = get_encoder(pretrained_path=SIMCLR_ENCODER_PATH)
@@ -194,7 +180,6 @@ def run_finetuning(train_loader, val_loader, test_loader):
         if epoch % 5 == 0:
             print(f"  Epoch {epoch:3d} | Loss: {loss:.4f} | Val Acc: {val_acc:.4f}")
 
-    # Load best and test
     model.load_state_dict(torch.load(f"{MODELS_DIR}/finetuned_model.pt",
                                       map_location=DEVICE))
     test_acc, test_logits, test_labels = evaluate(model, test_loader)
@@ -204,8 +189,6 @@ def run_finetuning(train_loader, val_loader, test_loader):
 
     return test_acc, val_accs, test_logits, test_labels, model
 
-
-# ── Accuracy Comparison Plot ──────────────────────────────────────────────────
 def plot_finetuning_accuracy(finetune_val_accs, linear_probe_acc, supervised_acc):
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(range(1, EPOCHS+1), finetune_val_accs,
@@ -224,8 +207,6 @@ def plot_finetuning_accuracy(finetune_val_accs, linear_probe_acc, supervised_acc
     plt.close(fig)
     print(f"Fine-tuning plot saved → {GRAPHS_DIR}/finetuning_accuracy.png")
 
-
-# ── Feature Extraction for Visualization ─────────────────────────────────────
 @torch.no_grad()
 def extract_features_for_viz(encoder, val_loader, n_samples=1000):
     """Extract 512-d features from encoder for PCA/t-SNE."""
@@ -243,8 +224,6 @@ def extract_features_for_viz(encoder, val_loader, n_samples=1000):
     labels = torch.cat(all_labels)[:n_samples].numpy()
     return feats, labels
 
-
-# ── PCA / t-SNE Visualization ─────────────────────────────────────────────────
 def visualize_features(feats, labels, out_path, title, method='tsne'):
     """Reduce 512-d features to 2D and plot with class colors."""
     set_seed(SEED)
@@ -277,8 +256,6 @@ def visualize_features(feats, labels, out_path, title, method='tsne'):
     plt.close(fig)
     print(f"  Saved → {out_path}")
 
-
-# ── Save test_predictions.csv ─────────────────────────────────────────────────
 def save_test_predictions(logits, labels, out_path):
     """
     Save test predictions in required format:
@@ -298,8 +275,6 @@ def save_test_predictions(logits, labels, out_path):
             writer.writerow(row)
     print(f"Predictions saved → {out_path}")
 
-
-# ── Save metrics.json ─────────────────────────────────────────────────────────
 def save_metrics(supervised_acc, random_probe_acc, simclr_probe_acc, finetune_acc):
     metrics = {
         "student_name": "Fahad Khalid",
@@ -332,12 +307,9 @@ def save_metrics(supervised_acc, random_probe_acc, simclr_probe_acc, finetune_ac
     print(f"metrics.json saved → {out_path}")
     return metrics
 
-
-# ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     train_loader, val_loader, test_loader = get_dataloaders()
 
-    # Load previous results
     with open(f"{RESULTS_DIR}/task5_results.json") as f:
         probe_results = json.load(f)
     random_probe_acc = probe_results["random_linear_probe_test_acc"]
@@ -351,14 +323,11 @@ def main():
           f"Random probe: {random_probe_acc:.4f} | "
           f"SimCLR probe: {simclr_probe_acc:.4f}")
 
-    # ── Fine-tuning ───────────────────────────────────────────────────────────
     finetune_acc, finetune_val_accs, test_logits, test_labels, finetuned_model = \
         run_finetuning(train_loader, val_loader, test_loader)
 
-    # ── Accuracy comparison plot ──────────────────────────────────────────────
     plot_finetuning_accuracy(finetune_val_accs, simclr_probe_acc, supervised_acc)
 
-    # ── Confusion matrix ──────────────────────────────────────────────────────
     preds = test_logits.argmax(dim=1).numpy()
     trues = test_labels.numpy()
     save_confusion_matrix(
@@ -367,16 +336,13 @@ def main():
         title="Fine-tuned Model — Confusion Matrix (Test Set)",
     )
 
-    # ── test_predictions.csv ──────────────────────────────────────────────────
     save_test_predictions(
         test_logits, test_labels,
         out_path=f"{RESULTS_DIR}/test_predictions.csv"
     )
 
-    # ── PCA / t-SNE Visualizations ────────────────────────────────────────────
     print("\n── Generating PCA/t-SNE Visualizations ──────────────────────────")
 
-    # 1. Random encoder
     print("\n1. Random encoder features...")
     random_encoder = get_encoder(pretrained_path=None)
     random_feats, viz_labels = extract_features_for_viz(random_encoder, val_loader, VIZ_SAMPLES)
@@ -385,7 +351,6 @@ def main():
         title="t-SNE: Random Encoder Features (1000 Val Samples)\nNo class structure expected",
         method='tsne')
 
-    # 2. SimCLR encoder
     print("\n2. SimCLR encoder features...")
     simclr_encoder = get_encoder(pretrained_path=SIMCLR_ENCODER_PATH)
     simclr_feats, _ = extract_features_for_viz(simclr_encoder, val_loader, VIZ_SAMPLES)
@@ -394,7 +359,6 @@ def main():
         title="t-SNE: SimCLR Encoder Features (1000 Val Samples)\nSome class clustering expected",
         method='tsne')
 
-    # 3. Fine-tuned encoder
     print("\n3. Fine-tuned encoder features...")
     finetuned_encoder = finetuned_model.encoder
     finetune_feats, _ = extract_features_for_viz(finetuned_encoder, val_loader, VIZ_SAMPLES)
@@ -403,7 +367,6 @@ def main():
         title="t-SNE: Fine-tuned Encoder Features (1000 Val Samples)\nStrong class clustering expected",
         method='tsne')
 
-    # ── Final comparison table ────────────────────────────────────────────────
     print("\n── Final Results Table ──────────────────────────────────────────")
     print(f"{'Model':<45} {'Labels in Pretraining?':<25} {'Frozen?':<10} {'Test Acc':>10}")
     print("-" * 95)
@@ -412,7 +375,6 @@ def main():
     print(f"{'SimCLR encoder + linear probe':<45} {'No':<25} {'Yes':<10} {simclr_probe_acc:>10.4f}")
     print(f"{'SimCLR encoder + fine-tuning':<45} {'No then Yes':<25} {'No':<10} {finetune_acc:>10.4f}")
 
-    # ── Save metrics.json ─────────────────────────────────────────────────────
     metrics = save_metrics(supervised_acc, random_probe_acc, simclr_probe_acc, finetune_acc)
 
     print("\n── ADD TO YOUR NOTES ────────────────────────────────────────────")
@@ -423,7 +385,6 @@ def main():
     print(f"  Random probe      : {random_probe_acc*100:.2f}%")
     print(f"  SimCLR probe      : {simclr_probe_acc*100:.2f}%")
     print(f"  SimCLR fine-tune  : {finetune_acc*100:.2f}%")
-
 
 if __name__ == "__main__":
     main()

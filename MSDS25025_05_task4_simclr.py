@@ -29,7 +29,6 @@ from tqdm import tqdm
 from utils.seed import set_seed
 from utils.dataset_splits import get_cifar10_subset
 
-# ── Config ────────────────────────────────────────────────────────────────────
 SEED           = 2026
 DATA_ROOT      = "/kaggle/input/datasets/fahadkhalid08/cifar10-assignment5/data"
 SPLITS_DIR     = "./splits"
@@ -56,8 +55,6 @@ print(f"Epochs      : {EPOCHS}")
 print(f"Temperature : {TEMPERATURE}")
 print(f"Projection  : {PROJ_DIM}")
 
-
-# ── Two-View Transform ────────────────────────────────────────────────────────
 simclr_transform = T.Compose([
     T.RandomResizedCrop(size=32, scale=(0.2, 1.0)),
     T.RandomHorizontalFlip(p=0.5),
@@ -75,8 +72,6 @@ class TwoViewTransform:
     def __call__(self, x):
         return self.transform(x), self.transform(x)
 
-
-# ── Encoder: ResNet-18 modified for CIFAR-10 ─────────────────────────────────
 class CIFARResNet18Encoder(nn.Module):
     """
     ResNet-18 modified for CIFAR-10 small images (32x32):
@@ -93,10 +88,8 @@ class CIFARResNet18Encoder(nn.Module):
         self.encoder = base
 
     def forward(self, x):
-        return self.encoder(x)   # (B, 512)
+        return self.encoder(x)
 
-
-# ── Projection Head ───────────────────────────────────────────────────────────
 class ProjectionHead(nn.Module):
     """
     MLP projection head used ONLY during SimCLR pretraining.
@@ -118,10 +111,8 @@ class ProjectionHead(nn.Module):
         )
 
     def forward(self, h):
-        return self.net(h)   # (B, 128)
+        return self.net(h)
 
-
-# ── SimCLR Model ──────────────────────────────────────────────────────────────
 class SimCLR(nn.Module):
     """Combines encoder + projection head for contrastive pretraining."""
     def __init__(self):
@@ -130,12 +121,10 @@ class SimCLR(nn.Module):
         self.projector  = ProjectionHead(512, 256, PROJ_DIM)
 
     def forward(self, x):
-        h = self.encoder(x)    # (B, 512) — the useful representation
-        z = self.projector(h)  # (B, 128) — used only for contrastive loss
+        h = self.encoder(x)
+        z = self.projector(h)
         return h, z
 
-
-# ── NT-Xent Loss (implemented from scratch) ───────────────────────────────────
 class NTXentLoss(nn.Module):
     """
     Normalized Temperature-scaled Cross Entropy Loss.
@@ -161,37 +150,24 @@ class NTXentLoss(nn.Module):
         """
         N = z1.shape[0]
 
-        # L2 normalize all projections
         z1 = F.normalize(z1, dim=1)
         z2 = F.normalize(z2, dim=1)
 
-        # Stack into (2N, D): [z1_0,...,z1_N, z2_0,...,z2_N]
-        z  = torch.cat([z1, z2], dim=0)   # (2N, D)
+        z  = torch.cat([z1, z2], dim=0)
 
-        # ── Similarity Matrix (2N x 2N) ───────────────────────────────────────
-        # sim[i,j] = cosine similarity between zi and zj
-        sim = torch.mm(z, z.T) / self.temperature   # (2N, 2N)
+        sim = torch.mm(z, z.T) / self.temperature
 
-        # ── Mask out diagonal (self-similarity) ───────────────────────────────
-        # We never want sim(zi, zi) in the denominator
         mask = torch.eye(2 * N, dtype=torch.bool, device=z.device)
         sim  = sim.masked_fill(mask, float('-inf'))
 
-        # ── Positive pair indices ─────────────────────────────────────────────
-        # For view1[i] (row i), positive is view2[i] (row N+i)
-        # For view2[i] (row N+i), positive is view1[i] (row i)
         labels = torch.cat([
-            torch.arange(N, 2*N, device=z.device),   # view1 positives at N..2N
-            torch.arange(0, N,   device=z.device),   # view2 positives at 0..N
-        ])   # (2N,)
+            torch.arange(N, 2*N, device=z.device),
+            torch.arange(0, N,   device=z.device),
+        ])
 
-        # ── Cross entropy over similarity rows ───────────────────────────────
-        # Each row: classify which of the 2N-1 others is the positive
         loss = F.cross_entropy(sim, labels)
         return loss
 
-
-# ── Cosine Similarity Matrix Visualization ────────────────────────────────────
 @torch.no_grad()
 def visualize_similarity_matrix(model, loader, out_path, title, n_samples=32):
     """Visualize the 2N x 2N similarity matrix for one small batch."""
@@ -229,8 +205,6 @@ def visualize_similarity_matrix(model, loader, out_path, title, n_samples=32):
     print(f"Similarity matrix saved → {out_path}")
     model.train()
 
-
-# ── Feature Similarity Measurement ───────────────────────────────────────────
 @torch.no_grad()
 def measure_similarity(model, loader, n_batches=5):
     """
@@ -251,11 +225,9 @@ def measure_similarity(model, loader, n_batches=5):
         h1 = F.normalize(h1, dim=1)
         h2 = F.normalize(h2, dim=1)
 
-        # Same image pairs
         same = (h1 * h2).sum(dim=1)
         same_sims.extend(same.cpu().tolist())
 
-        # Different image pairs (shift by 1)
         h2_shifted = torch.roll(h2, shifts=1, dims=0)
         diff = (h1 * h2_shifted).sum(dim=1)
         diff_sims.extend(diff.cpu().tolist())
@@ -263,8 +235,6 @@ def measure_similarity(model, loader, n_batches=5):
     model.train()
     return np.mean(same_sims), np.mean(diff_sims)
 
-
-# ── Training Loop ─────────────────────────────────────────────────────────────
 def train_simclr(model, loader, optimizer, criterion):
     train_losses = []
 
@@ -276,7 +246,7 @@ def train_simclr(model, loader, optimizer, criterion):
         model.train()
         total_loss = 0.0
 
-        for (v1, v2), _ in loader:   # labels _ are ignored
+        for (v1, v2), _ in loader:
             v1, v2 = v1.to(DEVICE), v2.to(DEVICE)
 
             _, z1 = model(v1)
@@ -298,10 +268,8 @@ def train_simclr(model, loader, optimizer, criterion):
 
     return train_losses
 
-
-# ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    # ── Data ──────────────────────────────────────────────────────────────────
+
     two_view = TwoViewTransform(simclr_transform)
     ssl_dataset = get_cifar10_subset(
         data_root=DATA_ROOT,
@@ -316,7 +284,6 @@ def main():
     )
     print(f"Unlabeled training samples: {len(ssl_dataset)}")
 
-    # ── Model ─────────────────────────────────────────────────────────────────
     model     = SimCLR().to(DEVICE)
     criterion = NTXentLoss(temperature=TEMPERATURE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
@@ -326,13 +293,11 @@ def main():
     print(f"Encoder parameters   : {enc_params:,}")
     print(f"Projector parameters : {proj_params:,}")
 
-    # ── Similarity BEFORE training ────────────────────────────────────────────
     print("\n── Feature Similarity BEFORE SimCLR Training ────────────────────")
     same_before, diff_before = measure_similarity(model, loader)
     print(f"Same image, two views : {same_before:.4f}")
     print(f"Different images      : {diff_before:.4f}")
 
-    # ── Similarity matrix BEFORE training ────────────────────────────────────
     visualize_similarity_matrix(
         model, loader,
         out_path=f"{RESULTS_DIR}/similarity_matrix_before_training.png",
@@ -340,10 +305,8 @@ def main():
               "Positive pairs are at off-diagonal positions (top-right / bottom-left blocks)"
     )
 
-    # ── Train SimCLR ──────────────────────────────────────────────────────────
     train_losses = train_simclr(model, loader, optimizer, criterion)
 
-    # ── Loss Curve ────────────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(range(1, EPOCHS + 1), train_losses, color='steelblue', linewidth=2)
     ax.set_xlabel("Epoch")
@@ -355,13 +318,11 @@ def main():
     plt.close(fig)
     print(f"\nLoss curve saved → {GRAPHS_DIR}/simclr_pretraining_loss.png")
 
-    # ── Similarity AFTER training ─────────────────────────────────────────────
     print("\n── Feature Similarity AFTER SimCLR Training ─────────────────────")
     same_after, diff_after = measure_similarity(model, loader)
     print(f"Same image, two views : {same_after:.4f}")
     print(f"Different images      : {diff_after:.4f}")
 
-    # ── Similarity matrix AFTER training ─────────────────────────────────────
     visualize_similarity_matrix(
         model, loader,
         out_path=f"{RESULTS_DIR}/similarity_matrix_after_training.png",
@@ -369,18 +330,15 @@ def main():
               "Same-image views (off-diagonal blocks) should now be brighter"
     )
 
-    # ── Save encoder weights ──────────────────────────────────────────────────
     torch.save(model.encoder.state_dict(), f"{MODELS_DIR}/simclr_encoder.pt")
     print(f"\nEncoder saved → {MODELS_DIR}/simclr_encoder.pt")
 
-    # ── Print comparison table ────────────────────────────────────────────────
     print("\n── Similarity Comparison Table ──────────────────────────────────")
     print(f"{'Pair Type':<35} {'Before SimCLR':>15} {'After SimCLR':>15}")
     print("-" * 65)
     print(f"{'Same image, two augmented views':<35} {same_before:>15.4f} {same_after:>15.4f}")
     print(f"{'Different images':<35} {diff_before:>15.4f} {diff_after:>15.4f}")
 
-    # ── Save results ──────────────────────────────────────────────────────────
     results = {
         "same_view_similarity_before": round(float(same_before), 4),
         "different_image_similarity_before": round(float(diff_before), 4),
@@ -397,7 +355,6 @@ def main():
     print(f"  Same image, two views : {same_after:.4f}")
     print(f"  Different images      : {diff_after:.4f}")
     print(f"  Final training loss   : {train_losses[-1]:.4f}")
-
 
 if __name__ == "__main__":
     main()

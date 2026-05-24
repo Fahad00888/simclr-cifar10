@@ -21,5 +21,6 @@
   "last_commit_before_deadline": "2026-05-31",
   "number_of_meaningful_commits": 12,
   "gpu_used": "Kaggle GPU T4 x2",
-  "approximate_training_time": "~90 minutes total"
+  "approximate_training_time": "~90 minutes total",
+  "google_drive_models": "https://drive.google.com/drive/folders/1XCxFfM28FjP4ToHfhe50ZFqW9Gqj9cp-?usp=sharing"
 }

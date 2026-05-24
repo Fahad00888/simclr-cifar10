@@ -143,7 +143,7 @@ python MSDS25025_05_task6_finetune.py        # Fine-tuning + final metrics
 ## Model Weights
 
 Too large for GitHub. Download from Google Drive:
-Link: [add before submission]
+Link: https://drive.google.com/drive/folders/1XCxFfM28FjP4ToHfhe50ZFqW9Gqj9cp-?usp=sharing
 
 ---
 

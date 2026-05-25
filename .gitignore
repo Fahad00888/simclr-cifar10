@@ -1,0 +1,6 @@
+data/
+models/*.pt
+.DS_Store
+__pycache__/
+*.pyc
+fix_paths.py

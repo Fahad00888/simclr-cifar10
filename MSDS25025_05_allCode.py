@@ -1,9 +1,7 @@
-'''
-MSDS25025_05_allCode.py
-All Tasks Combined — Assignment 5 SimCLR
-Student: Fahad Khalid | Roll: MSDS25025
-'''
 
+MSDS25025_05_allCode.py
+All Tasks Combined - Assignment 5 SimCLR
+Student: Fahad Khalid | Roll: MSDS25025
 ================================================================================
 # MSDS25025_05_task1_supervised.py
 ================================================================================

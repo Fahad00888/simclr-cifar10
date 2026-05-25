@@ -15,7 +15,7 @@ from utils.dataset_splits import get_cifar10_subset
 from utils.visualization import save_augmentation_grid
 
 SEED       = 2026
-DATA_ROOT  = "./data"
+DATA_ROOT = "./data"
 SPLITS_DIR = "./splits"
 RESULTS_DIR = "./results"
 

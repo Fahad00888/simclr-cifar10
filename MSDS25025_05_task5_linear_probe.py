@@ -34,7 +34,7 @@ from utils.dataset_splits import get_cifar10_subset
 from utils.metrics import compute_accuracy, save_confusion_matrix
 
 SEED          = 2026
-DATA_ROOT     = "/kaggle/input/datasets/fahadkhalid08/cifar10-assignment5/data"
+DATA_ROOT = "./data"
 SPLITS_DIR    = "./splits"
 RESULTS_DIR   = "./results"
 GRAPHS_DIR    = "./graphs"
@@ -45,7 +45,7 @@ EPOCHS        = 20
 LR            = 3e-4
 DEVICE        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-SIMCLR_ENCODER_PATH = "/kaggle/input/simclr-encoder-msds25025/simclr_encoder.pt"
+SIMCLR_ENCODER_PATH = "./models/simclr_encoder.pt"
 
 set_seed(SEED)
 os.makedirs(RESULTS_DIR, exist_ok=True)

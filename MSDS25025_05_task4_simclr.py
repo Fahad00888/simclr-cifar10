@@ -30,7 +30,7 @@ from utils.seed import set_seed
 from utils.dataset_splits import get_cifar10_subset
 
 SEED           = 2026
-DATA_ROOT      = "/kaggle/input/datasets/fahadkhalid08/cifar10-assignment5/data"
+DATA_ROOT = "./data"
 SPLITS_DIR     = "./splits"
 RESULTS_DIR    = "./results"
 GRAPHS_DIR     = "./graphs"

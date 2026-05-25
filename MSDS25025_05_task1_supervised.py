@@ -23,7 +23,7 @@ from utils.metrics import (
 )
 
 SEED        = 2026
-DATA_ROOT   = "./data"
+DATA_ROOT = "./data"
 SPLITS_DIR  = "./splits"
 RESULTS_DIR = "./results"
 GRAPHS_DIR  = "./graphs"

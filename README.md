@@ -134,9 +134,9 @@ python MSDS25025_05_task6_finetune.py        # Fine-tuning + final metrics
 | Model                             | Test Accuracy |
 |-----------------------------------|---------------|
 | Supervised ResNet-18 (10% labels) | 72.28%        |
-| Random encoder + linear probe     | ___           |
-| SimCLR encoder + linear probe     | ___           |
-| SimCLR encoder + fine-tuning      | ___           |
+| Random encoder + linear probe     | 25.29%        |
+| SimCLR encoder + linear probe     | 72.85%        |
+| SimCLR encoder + fine-tuning      | 83.10%        |
 
 ---
 

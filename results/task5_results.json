@@ -1,0 +1,4 @@
+{
+  "random_linear_probe_test_acc": 0.253,
+  "simclr_linear_probe_test_acc": 0.731
+}
